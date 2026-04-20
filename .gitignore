@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Database (Production DB must NOT be pushed)
+*.db
+*.sqlite3
+
+# Logs
+logs/*.log
+*.log
+
+# Storage (Ignore heavy assets but keep directory placeholders)
+storage/csv_files/*
+storage/images/*
+storage/docs/*
+storage/others/*
+storage/avatars/*
+!storage/**/.gitkeep
+
+# IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
