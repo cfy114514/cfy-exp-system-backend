@@ -1,81 +1,86 @@
-# CFY 实验数据并发管理系统 (Backend - v2.0)
+# 实验室高并发实验数据管理与可视化分析系统 (Lab-Exp-Data-System)
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109.0-05998b.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776ab.svg?style=flat&logo=python)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Vue](https://img.shields.io/badge/Vue-3.x-42b883.svg?style=flat&logo=vue.js)](https://vuejs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-05998b.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 
-本项目是实验数据管理系统的核心后端中枢，采用 **FastAPI** 异步架构，专为高频率物理实验数据（如示波器波形）的采集、存储、清洗与可视化设计。
+本项目专为实验室高精密信号监测与数据存证而设计，实现了从物理采样、信号清洗到多维可视化的全链路管理。
 
-## 🌟 核心特性 (Core Features)
+## 🏛️ 系统架构 (Architecture)
 
-- **🚀 权重制 RBAC 权限体系**：
-  - 基于 `Admin(99)`、`Teacher(50)`、`Student(10)` 的三维权重校验，实现精细化的数据穿透与隔离保护。
-  - 支持学生私有科研空间的自动创建与教师角色的跨组审批。
-- **📊 柔性实验录入工作流**：
-  - **“物证优先”设计**：支持 CSV 波形、实操照片、实验报告 PDF、心得备注的混合上报。
-  - **自适应容错**：即使缺少示波器 CSV 物理文件，系统仍能作为“轻量级档案”稳定运行。
-- **⚙️ 微服务算力隔离架构**：
-  - 将 CPU 密集型的信号清洗算法（Numpy/Pandas/Scipy）剥离至独立的 **Worker Node**，确保 API 网关的高并发响应能力。
-- **🛠 全功能管理员中枢**：
-  - 全量人员画像详勘、账号生命周期管控（封禁/激活）、一键密码重置及头像物理存储。
-- **🛡 健壮性保护**：
-  - 内置基于 `joinedload` 的查询优化与“空路径波形熔断”保护，彻底根绝 500/404 隐患。
+本系统采用 **前后端分离 (Decoupled)** 与 **计算任务卸载 (Worker Offloading)** 架构：
 
-## 🏗 技术栈 (Tech Stack)
+- **Frontend (Vue 3 SPA)**: 负责复杂的 UI 交互、波形大数据降采样渲染、前端数据校验。
+- **API Server (FastAPI)**: 提供高性能 RESTful 路由、JWT 安全鉴权、多源附件存储逻辑。
+- **Worker Matrix (Python Worker)**: 独立进程处理大容量物理 CSV 的清洗、DSP 滤波算法及特征提取（如 Vpp 计算），保障 API 响应实时归还。
 
-- **Web Framework**: FastAPI (Async)
-- **ORM**: SQLAlchemy 2.0 (SQLite 生产级单体模式)
-- **Authentication**: JWT + OAuth2 + Bcrypt
-- **DSP Engine**: Pandas, Scipy, Numpy (Butterworth 4-阶低通滤波)
-- **Logger**: 滚动日志自动追踪系统 (`logs/app.log`)
+## ✨ 核心功能 (Key Features)
 
-## 🚦 快速启动 (Quick Start)
+### 1. 实验数据全模态管理
+- **多源录入**：支持“波形 CSV + 现场照片集 + 结题 PDF 报告 + 文字心得”四位一体的复合存储。
+- **物证优先**：实现“波形文件非必填”逻辑，支持纯图文实验日志存证。
 
-### 1. 环境准备
+### 2. 高级波形可视化
+- **动态回放**：基于 ECharts 5 深度优化的 DualWave 组件，支持原始波形与平滑波形的实时对比。
+- **大数据支持**：通过前端滑动窗口与后端降采样双重策略，稳定承载 50k+ 数据点的实时交互。
+
+### 3. 多角色权限体系 (RBAC)
+- **Admin (99)**: 全局看板、用户全量画像、账号状态一键封禁。
+- **Teacher (50)**: 课题组管理、入组申请审批、辖区内项目资源穿透（不含学生私有域）。
+- **Student (10)**: 个人空间维护、多模态实验数据上报、资源导出下载。
+
+### 4. 资源下载与导出
+- **自动化 ZIP 打包**：现场照片集支持后端内存 ZIP 压缩后下发。
+- **标准资产提取**：原始 CSV 数据与 PDF 报告的精准流式导出。
+
+## 🛠️ 技术栈 (Tech Stack)
+
+| 维度 | 技术选型 |
+| :--- | :--- |
+| **前端** | Vue 3, Vite, TypeScript, Element Plus, Pinia, ECharts |
+| **后端** | FastAPI, SQLAlchemy, Pydantic, Python 3.10+ |
+| **核心算法** | DSP 信号清理, 特征提取 (Vpp/Frequency) |
+| **存储** | SQLite (Local Dev) / MySQL 8.0, 物理文件存储 |
+
+## 🚀 快速启动 (Getting Started)
+
+### 前端开发 (Frontend)
 ```bash
-git clone https://github.com/cfy114514/cfy-exp-system-backend.git
-cd cfy-exp-system-backend
-pip install -r requirements.txt
+# 进入目录
+cd cfy-exp-system-frontend
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
 ```
 
-### 2. 双节点集群运行 (推荐)
-为了实现算力隔离，建议分别开启两个终端运行：
-
-#### 👉 终端 1：核心计算微服务 (Compute Node)
+### 后端开发 (Backend)
 ```bash
+# 进入目录
+cd cfy-exp-system-backend
+
+# 启动 API 枢纽
+uvicorn main:app --reload
+
+# 启动算力 Worker (用于处理波形算法)
 python worker_main.py
 ```
-*监听 8001 端口，负责全量数据清洗与 DSP 算法执行。*
 
-#### 👉 终端 2：API 管理网关 (Gateway Node)
-```bash
-python main.py
-```
-*监听 8000 端口，负责业务逻辑、鉴权及数据库事务。*
-
-### 3. 初次启动指引
-- 系统首次运行会自动初始化 SQLite 数据库，并注入**超级管理员**账号：
-  - **账号**：`admin`
-  - **初始密码**：`123456`
-
-## 📁 目录结构 (Directory Structure)
+## 📂 目录结构 (Directory)
 
 ```text
-.
-├── api/                # 业务路由模块 (auth, user, project, group, upload)
-├── core/               # 核心配置与安全鉴权逻辑
-├── models/             # 数据库模型 (SQLAlchemy)
-├── services/           # 信号处理、计算客户端等服务逻辑
-├── storage/            # 物理存储区 (已配置 .gitkeep, 免于推送大型资产)
-├── scratch/            # 数据库迁移脚本集合
-├── worker_main.py      # 计算节点启动入口
-└── main.py             # 主服务启动入口
+├── cfy-exp-system-frontend    # Vue 3 前端代码
+│   ├── src/views/Record       # 历史台账模块
+│   ├── src/views/Experiment   # 动态录入模块
+│   └── src/components/charts  # ECharts 组件封装
+├── cfy-exp-system-backend     # FastAPI 后端代码
+│   ├── api/                   # 各业务领域控制器
+│   ├── core/                  # 安全、日志等核心逻辑
+│   ├── models/                # 数据库模型定义
+│   └── storage/               # 物理资源存储根目录 (图片/PDF/CSV)
 ```
 
-## 🛡 开发与协作说明
-- **代码规范**：所有接口均已对齐前端 `FormData` 协议。
-- **文件过滤**：本地 `.db` 与 `storage/` 下的物理资产已被 `.gitignore` 过滤，请勿强制上传。
-- **日志审计**：所有线上异常均会记录在 `logs/` 文件夹下，请根据日志进行故障排除。
-
 ---
-*本项目由 cfy114514 全权设计并维护。*
+*本项目由 cfy114514 开发，致力于提供最专业的实验室数据管理体验。*
