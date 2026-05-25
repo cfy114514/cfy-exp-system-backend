@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import os
 import shutil
@@ -34,6 +34,9 @@ class StatusUpdate(BaseModel):
 class ProfileUpdate(BaseModel):
     real_name: Optional[str] = None
     department: Optional[str] = None
+
+class PasswordReset(BaseModel):
+    new_password: str = Field(..., min_length=6)
 
 # --- 接口实现 ---
 
@@ -96,17 +99,18 @@ async def update_user_status(
 @router.post("/api/admin/users/{user_id}/reset-password")
 async def reset_user_password(
     user_id: int,
+    data: PasswordReset,
     current_user: User = Depends(WeightChecker(99)),
     db: Session = Depends(get_db)
 ):
-    """重置密码为默认值 123456"""
+    """管理员重置/修改指定用户的密码"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     
-    user.password_hash = get_password_hash("123456")
+    user.password_hash = get_password_hash(data.new_password)
     db.commit()
-    return {"status": "success", "message": f"用户 {user.username} 的密码已重置为 123456"}
+    return {"status": "success", "message": f"用户 {user.username} 的密码已成功修改"}
 
 @router.patch("/api/admin/users/{user_id}/profile")
 async def update_user_profile(
