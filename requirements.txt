@@ -8,3 +8,4 @@ scipy
 PyJWT
 passlib
 bcrypt
+httpx
