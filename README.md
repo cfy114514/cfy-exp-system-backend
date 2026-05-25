@@ -68,6 +68,59 @@ uvicorn main:app --reload
 python worker_main.py
 ```
 
+## 📦 部署指南 (Deployment)
+
+本项目支持传统的进程守护部署及容器化（Docker）部署：
+
+### 方式一：Docker 容器化部署（推荐）
+
+通过容器部署可以确保环境一致性，避免依赖冲突。
+
+1. **构建镜像**
+   在后端目录 `cfy-exp-system-backend` 下执行：
+   ```bash
+   docker build -t cfy-exp-backend:latest .
+   ```
+
+2. **启动容器（挂载持久化目录）**
+   运行以下命令，建议将日志、物理上传的文件以及 SQLite 数据库文件挂载到宿主机，以防容器销毁时数据丢失：
+   ```bash
+   docker run -d \
+     -p 8000:8000 \
+     --name exp-backend \
+     -v /opt/cfy-exp/storage:/app/storage \
+     -v /opt/cfy-exp/logs:/app/logs \
+     -v /opt/cfy-exp/cfy_exp.db:/app/cfy_exp.db \
+     --restart always \
+     cfy-exp-backend:latest
+   ```
+
+---
+
+### 方式二：手动/进程守护部署
+
+1. **环境准备**
+   确保服务器已安装 `Python 3.10+`，推荐使用虚拟环境进行管理。
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Linux
+   pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+   ```
+
+2. **安装并配置 PM2 / Supervisor 守护进程**
+   以 PM2 为例（需要 Node.js 环境支持），在后端目录中执行以下命令守护 API 服务和计算 Worker：
+   ```bash
+   # 启动并守护后端 API 端口
+   pm2 start "uvicorn main:app --host 0.0.0.0 --port 8000" --name "exp-api"
+
+   # 启动并守护计算任务 Worker 进程
+   pm2 start "python worker_main.py" --name "exp-worker"
+   
+   # 保存 PM2 配置并设置开机自启
+   pm2 save
+   pm2 startup
+   ```
+
 ## 📂 目录结构 (Directory)
 
 ```text
