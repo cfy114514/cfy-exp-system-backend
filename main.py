@@ -19,14 +19,21 @@ def init_admin_user():
     try:
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
+            import secrets
+            random_password = secrets.token_hex(6)  # 生成 12 位 16 进制随机密码
             admin_user = User(
                 username="admin",
-                password_hash=get_password_hash("123456"),
+                password_hash=get_password_hash(random_password),
                 role=RoleEnum.admin
             )
             db.add(admin_user)
             db.commit()
-            logger.info("系统首次启动，已为您生成默认总管账号：admin/123456")
+            logger.warning("=" * 60)
+            logger.warning("系统首次初始化数据库，已为您自动注入初始 Admin 账户：")
+            logger.warning(f"  用户名 (Username): admin")
+            logger.warning(f"  初始密码 (Password): {random_password}")
+            logger.warning("请使用此密码登录系统，并立即在后台管理面板中修改它！")
+            logger.warning("=" * 60)
     finally:
         db.close()
 
