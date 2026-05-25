@@ -1,0 +1,28 @@
+# 忽略虚拟环境
+.venv/
+venv/
+ENV/
+
+# 忽略 Python 缓存文件
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略 Git 历史记录
+.git/
+.gitignore
+
+# 忽略本地开发数据库
+cfy_exp.db
+*.db-journal
+
+# 忽略本地日志与临时上传的静态文件
+logs/
+storage/
+
+# 忽略测试与临时脚本
+tests/
+scratch/
+generate_mock_csv.py
+*.log
