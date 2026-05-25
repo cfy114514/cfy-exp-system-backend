@@ -8,6 +8,7 @@ from typing import Optional, List
 from models.database import get_db, User, Project, Group, Subject, ExperimentData, GroupMember
 from core.security import get_current_user, RoleChecker, WeightChecker
 from services.compute_client import call_clean_data
+from core.utils import get_storage_size
 
 router = APIRouter()
 
@@ -249,11 +250,19 @@ async def get_dashboard_summary(
         .limit(5).all()
     )
     
+    # 设定一个总配额空间，比如 50 GB (50 * 1024 * 1024 * 1024 字节)
+    TOTAL_QUOTA_BYTES = 50 * 1024 * 1024 * 1024 
+    used_bytes = get_storage_size("storage")
+    used_gb = round(used_bytes / (1024 ** 3), 2)  # 转为 GB
+    percent = round((used_bytes / TOTAL_QUOTA_BYTES) * 100, 1)
+
     return {
         "status": "success",
         "data": {
             "total_projects": total_projects,
             "total_records": total_records,
+            "used_gb": used_gb,
+            "percent": percent,
             "recent_records": [
                 {
                     "record_id": r.id, 
@@ -265,6 +274,7 @@ async def get_dashboard_summary(
             ]
         }
     }
+
 
 class SearchParams(BaseModel):
     date_start: Optional[str] = None
