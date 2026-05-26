@@ -17,6 +17,45 @@ def apply_filtfilt(b, a, data):
         return data  # 数据太短则不滤波
     return filtfilt(b, a, data)
 
+def estimate_signal_cutoff(raw_array, fs, default_cutoff=50000.0):
+    """
+    智能估计低通滤波器的截止频率。
+    通过 FFT 识别信号中最强的主频分量，以该主频的 5 倍作为截止频率，实现自适应消噪。
+    """
+    try:
+        n = len(raw_array)
+        if n < 8:
+            return default_cutoff
+        
+        y = np.array(raw_array)
+        # 去直流分量
+        y_detrend = y - np.mean(y)
+        
+        # 计算实信号 FFT
+        fft_vals = np.abs(np.fft.rfft(y_detrend))
+        fft_freqs = np.fft.rfftfreq(n, d=1.0/fs)
+        
+        # 寻找主要的低频信号分量 (防止直接把超高频噪声当成主频)
+        # 限制在 Nyquist 频率的 30% 以内进行主频搜索，这是大多数基频信号的合理范围
+        nyq = 0.5 * fs
+        search_limit = 0.3 * nyq
+        search_indices = fft_freqs <= search_limit
+        if not np.any(search_indices):
+            search_indices = np.ones_like(fft_freqs, dtype=bool)
+            
+        peak_idx = np.argmax(fft_vals[search_indices])
+        peak_freq = fft_freqs[peak_idx]
+        
+        if peak_freq > 0:
+            # 截止频率设为信号基频的 5 倍（保留基频和低次谐波，对正弦、方波、三角波等皆可完美恢复特征）
+            adaptive_cutoff = peak_freq * 5.0
+            # 确保截止频率不超过 Nyquist 频率的 80%，留出合理的过渡带
+            max_safe_cutoff = 0.8 * nyq
+            return min(adaptive_cutoff, max_safe_cutoff)
+    except Exception:
+        pass
+    return default_cutoff
+
 def clean_oscilloscope_arrays(time_axis: list, channels_data: dict, cutoff_freq: float = 50000.0) -> dict:
     """
     【架构升级方案】: 纯内存数据处理 (Numpy/SciPy)
@@ -31,6 +70,17 @@ def clean_oscilloscope_arrays(time_axis: list, channels_data: dict, cutoff_freq:
             raise ValueError(f"采样时间间隔 dt 非法: {dt}")
             
         fs = 1.0 / dt
+        nyq = 0.5 * fs
+        
+        # 如果截止频率是默认的 50kHz，或者截止频率大于等于 Nyquist 频率，启动智能自适应消噪
+        if cutoff_freq >= 50000.0 or cutoff_freq >= nyq:
+            estimated_cutoffs = []
+            for col, raw_list in channels_data.items():
+                est = estimate_signal_cutoff(raw_list, fs, default_cutoff=cutoff_freq)
+                estimated_cutoffs.append(est)
+            if estimated_cutoffs:
+                cutoff_freq = max(estimated_cutoffs)
+                
         b, a = design_butterworth_filter(fs, cutoff_freq)
         
         result_payload = {"time_axis": time_axis}
