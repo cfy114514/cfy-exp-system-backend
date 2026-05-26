@@ -219,6 +219,75 @@ async def get_record_detail(
         }
     }
 
+@router.delete("/api/records/{record_id}")
+async def delete_experiment_record(
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    删除实验记录接口
+    - 身份验证：仅允许管理员 (admin) 或该记录的创建者 (operator) 执行删除
+    - 功能：从数据库删除记录，并级联删除本地存储中的关联资产（CSV、PDF、现场照片）
+    """
+    # 1. 查找记录
+    record = db.query(ExperimentData).filter(ExperimentData.id == record_id).first()
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Record not found"
+        )
+    
+    # 2. 权限校验
+    user_role = getattr(current_user.role, 'value', current_user.role)
+    if user_role != "admin" and record.operator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied"
+        )
+    
+    # 3. 级联删除物理存储中的关联资产
+    # A. 原始 CSV 文件
+    if record.file_path and os.path.exists(record.file_path):
+        try:
+            os.remove(record.file_path)
+        except Exception as e:
+            from core.logger import logger
+            logger.error(f"Failed to delete CSV file {record.file_path}: {e}")
+            
+    # B. 实验报告 PDF
+    if record.report_pdf_path and os.path.exists(record.report_pdf_path):
+        try:
+            os.remove(record.report_pdf_path)
+        except Exception as e:
+            from core.logger import logger
+            logger.error(f"Failed to delete PDF report {record.report_pdf_path}: {e}")
+            
+    # C. 现场照片集
+    if record.site_photos_paths:
+        for photo_path in record.site_photos_paths:
+            if photo_path and os.path.exists(photo_path):
+                try:
+                    os.remove(photo_path)
+                except Exception as e:
+                    from core.logger import logger
+                    logger.error(f"Failed to delete photo {photo_path}: {e}")
+                    
+    # 4. 从数据库中删除记录
+    try:
+        db.delete(record)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        from core.logger import logger
+        logger.error(f"Failed to delete record from DB: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
+        
+    return {"status": "success", "message": "Record deleted successfully"}
+
 @router.get("/api/dashboard/summary")
 async def get_dashboard_summary(
     current_user: User = Depends(get_current_user),
@@ -324,6 +393,7 @@ async def search_records(
             {
                 "record_id": r.id,
                 "project_id": r.project_id,
+                "operator_id": r.operator_id,
                 "measured_vpp": r.measured_vpp,
                 "notes": r.notes,
                 "file_path": r.file_path,
