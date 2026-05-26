@@ -208,7 +208,7 @@ async def download_file(
     db: Session = Depends(get_db)
 ):
     """
-    全能多源下载枢纽：支持 csv/report/photo(zip) 三种模式。
+    全能多源下载枢纽：支持 csv/doc/photo(zip) 三种模式。
     """
     record = db.query(ExperimentData).filter(ExperimentData.id == record_id).first()
     if not record:
@@ -219,7 +219,7 @@ async def download_file(
             raise HTTPException(status_code=404, detail="未找到原始 CSV 文件")
         return FileResponse(record.file_path, filename=os.path.basename(record.file_path))
         
-    elif category == "report":
+    elif category == "doc":
         if not record.report_pdf_path or not os.path.exists(record.report_pdf_path):
             raise HTTPException(status_code=404, detail="本记录未上传 PDF 报告")
         return FileResponse(record.report_pdf_path, filename=os.path.basename(record.report_pdf_path))
@@ -247,4 +247,4 @@ async def download_file(
         )
     
     else:
-        raise HTTPException(status_code=400, detail="不支持的下载类型 (csv/report/photo)")
+        raise HTTPException(status_code=400, detail="不支持的下载类型 (csv/doc/photo)")
