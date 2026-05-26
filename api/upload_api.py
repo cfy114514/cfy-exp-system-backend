@@ -203,28 +203,28 @@ async def upload_experiment_data(
 @router.get("/api/records/attachment/{record_id}")
 async def download_file(
     record_id: int,
-    type: str = "csv",
+    category: str = "csv",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    全能多源下载枢纽：支持 csv/pdf/photo(zip) 三种模式。
+    全能多源下载枢纽：支持 csv/report/photo(zip) 三种模式。
     """
     record = db.query(ExperimentData).filter(ExperimentData.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="实验记录不存在")
         
-    if type == "csv":
+    if category == "csv":
         if not record.file_path or not os.path.exists(record.file_path):
             raise HTTPException(status_code=404, detail="未找到原始 CSV 文件")
         return FileResponse(record.file_path, filename=os.path.basename(record.file_path))
         
-    elif type == "pdf":
+    elif category == "report":
         if not record.report_pdf_path or not os.path.exists(record.report_pdf_path):
             raise HTTPException(status_code=404, detail="本记录未上传 PDF 报告")
         return FileResponse(record.report_pdf_path, filename=os.path.basename(record.report_pdf_path))
         
-    elif type == "photo":
+    elif category == "photo":
         if not record.site_photos_paths:
             raise HTTPException(status_code=404, detail="本记录无关联照片")
             
@@ -247,4 +247,4 @@ async def download_file(
         )
     
     else:
-        raise HTTPException(status_code=400, detail="不支持的下载类型 (csv/pdf/photo)")
+        raise HTTPException(status_code=400, detail="不支持的下载类型 (csv/report/photo)")
