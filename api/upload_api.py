@@ -200,7 +200,7 @@ async def upload_experiment_data(
         logger.error(f"Upload processing failed: {str(e)}")
         return {"status": "error", "message": f"处理出错: {str(e)}"}
 
-@router.get("/api/files/download/{record_id}")
+@router.get("/api/records/attachment/{record_id}")
 async def download_file(
     record_id: int,
     type: str = "csv",
