@@ -137,14 +137,22 @@ async def handle_application(
 
 @router.get("/api/groups/all")
 async def get_all_groups_for_admin(
-    current_user: User = Depends(WeightChecker(99)), # 绝密：仅管理员可全局盘点
+    current_user: User = Depends(WeightChecker(50)), # 1. 将权限放宽到 50 (Teacher 及以上)
     db: Session = Depends(get_db)
 ):
     """
     全量分组盘点：Admin 可以穿透看到所有私有组和公共组，
-    旨在进行资源配额清理和合规性检查。
+    Teacher 只能看到自己管理的分组。
     """
-    groups = db.query(Group).all()
+    user_role = getattr(current_user.role, 'value', current_user.role)
+    
+    # 2. 根据角色过滤分组数据
+    if user_role == "admin":
+        groups = db.query(Group).all()
+    else:
+        # 教师仅获取由自己管理的分组
+        groups = db.query(Group).filter(Group.manager_id == current_user.id).all()
+        
     result = []
     for g in groups:
         # 获取管理者用户名 (兜底)
